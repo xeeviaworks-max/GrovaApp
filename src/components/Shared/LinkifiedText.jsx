@@ -18,6 +18,9 @@ const PLATFORM_META = {
 const getPlatformMeta = (url) => {
   try {
     const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "xeevia.com" || host === "app.xeevia.com" || host.endsWith(".xeevia.com")) {
+      return { label: "Xeevia", color: "#a3e635", key: "xeevia" };
+    }
     const key = Object.keys(PLATFORM_META).find((name) => host === `${name}.com` || host.endsWith(`.${name}.com`));
     return key ? { ...PLATFORM_META[key], key } : { label: host || "External link", color: "#a3e635", key: "link" };
   } catch {
@@ -105,12 +108,17 @@ const LinkSegment = ({ url, trailing, onNavigate, displayMode = "string" }) => {
     }
   };
 
-  if (displayMode === "embed" && !internal) {
+  if (displayMode === "embed") {
+    const previewLabel = internal ? (internalType ? `Xeevia ${internalType}` : "Xeevia link") : `${platform.label} link`;
+    const hostname = (() => {
+      try { return new URL(url).hostname; } catch { return url; }
+    })();
+
     return (
       <span className="xeevia-link-wrap xeevia-link-preview-wrap">
-        <a className="xeevia-link-card" href={url} target="_blank" rel="noopener noreferrer" onClick={handleClick}>
-          <img className="xeevia-link-icon" style={{ width: 28, height: 28, flex: "0 0 28px", borderRadius: 7, background: "rgba(255,255,255,.08)" }} src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(url).hostname)}&sz=64`} alt="" loading="lazy" />
-          <span className="xeevia-link-card-copy" style={{ display: "flex", flexDirection: "column", minWidth: 0, maxWidth: "100%", gap: 2 }}><strong style={{ display: "block", maxWidth: "100%", color: platform.color, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{platform.label} link</strong><small style={{ display: "block", maxWidth: "100%", color: "rgba(255,255,255,.58)", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{new URL(url).hostname}</small></span>
+        <a className="xeevia-link-card" href={url} target={internal ? "_self" : "_blank"} rel={internal ? "noopener" : "noopener noreferrer"} onClick={handleClick}>
+          <img className="xeevia-link-icon" style={{ width: 28, height: 28, flex: "0 0 28px", borderRadius: 7, background: "rgba(255,255,255,.08)" }} src={internal ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64` : `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64`} alt="" loading="lazy" />
+          <span className="xeevia-link-card-copy" style={{ display: "flex", flexDirection: "column", minWidth: 0, maxWidth: "100%", gap: 2 }}><strong style={{ display: "block", maxWidth: "100%", color: platform.color, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{previewLabel}</strong><small style={{ display: "block", maxWidth: "100%", color: "rgba(255,255,255,.58)", fontSize: 10, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{hostname}</small></span>
           <span className="xeevia-link-open" style={{ marginLeft: "auto", color: platform.color, flex: "0 0 auto" }} aria-hidden="true">↗</span>
         </a>
         {trailing}
@@ -134,14 +142,16 @@ const LinkifiedText = ({ children, className, onNavigate, displayMode = "embed",
   const parts = children.split(URL_PATTERN);
   if (previewOnly) {
     const url = children.replace(TRAILING_PUNCTUATION, "");
-    if (!/^https?:\/\//i.test(url) || isInternalXeeviaUrl(url)) return null;
+    if (!/^https?:\/\//i.test(url)) return null;
     return <LinkSegment url={url} trailing="" onNavigate={onNavigate} displayMode="embed" />;
   }
   const previewUrls = displayMode === "embed"
-    ? parts
-      .filter((part) => /^https?:\/\//i.test(part))
-      .map((part) => part.replace(TRAILING_PUNCTUATION, ""))
-      .filter((url) => !isInternalXeeviaUrl(url))
+    ? Array.from(new Set(
+        parts
+          .filter((part) => /^https?:\/\//i.test(part))
+          .map((part) => part.replace(TRAILING_PUNCTUATION, ""))
+          .filter(Boolean)
+      ))
     : [];
   return (
     <span className={`xeevia-linkified-text${className ? ` ${className}` : ""}`}>
