@@ -265,7 +265,6 @@ const CSS = `
     background:#84cc16; animation:idPulse 2s ease-in-out infinite;
   }
   .idHandle { color:#9ca3af; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .idConnectNote { font-size:10px; color:#7d8590; margin-top:4px; line-height:1.5; }
 
   .idCard > .idBtn,
   .idCard > .idSoonBadge {
@@ -685,10 +684,6 @@ const IdentitySection = ({ userId }) => {
                         }
                         {cfg.label}
                       </div>
-                      {/* Connect note for unlinked live platforms */}
-                      {status === "none" && meta.live && meta.connectNote && (
-                        <div className="idConnectNote">{meta.connectNote}</div>
-                      )}
                     </div>
 
                     {/* Top action: link state. The lower action shows the exact linked account or URL. */}
